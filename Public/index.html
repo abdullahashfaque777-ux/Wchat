@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wchat</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar">
+
+            <h1>Wchat</h1>
+
+            <button class="random-btn">
+                Start Random Chat
+            </button>
+
+            <div class="user-status">
+                <p>Status</p>
+                <h2>Online</h2>
+            </div>
+
+        </aside>
+
+        <main class="chat-section">
+
+            <div class="chat-header">
+
+                <h3>Random Stranger</h3>
+
+                <span class="status">
+                    Connected
+                </span>
+
+            </div>
+
+            <div class="chat-box">
+
+            </div>
+
+            <div class="chat-input-area">
+
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="Type a message..."
+                >
+
+                <button id="sendBtn">
+                    Send
+                </button>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script src="script.js"></script>
+
+</body>
+</html> 
