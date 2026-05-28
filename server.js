@@ -1,123 +1,199 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 
 const app = express();
-
 const server = http.createServer(app);
-
 const io = new Server(server);
 
 app.use(express.static("public"));
 
-let waitingUser = null;
+// ---------------- SECURITY ----------------
+const SECRET = "wchat_super_secret_key_change_later";
 
-function findPartner(socket){
+// ---------------- STATE ----------------
+let queues = {
+    India: [],
+    USA: [],
+    UK: []
+};
 
-    if(waitingUser){
+const queueCooldown = new Map();
+const ipLimits = new Map();
 
-        socket.partner = waitingUser;
-        waitingUser.partner = socket;
-
-        socket.emit(
-            "chat-message",
-            "Connected to a stranger!"
-        );
-
-        waitingUser.emit(
-            "chat-message",
-            "Connected to a stranger!"
-        );
-
-        waitingUser = null;
-
-    } else {
-
-        waitingUser = socket;
-
-        socket.emit(
-            "chat-message",
-            "Waiting for stranger..."
-        );
-
-    }
-
+// ---------------- HELPERS ----------------
+function createToken(user) {
+    return jwt.sign(user, SECRET, { expiresIn: "7d" });
 }
 
+function verifyToken(token) {
+    try {
+        return jwt.verify(token, SECRET);
+    } catch {
+        return null;
+    }
+}
+
+function sanitize(msg) {
+    return String(msg)
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+// ---------------- MATCHMAKING ----------------
+function matchUsers(country) {
+
+    const queue = queues[country];
+
+    if (queue.length < 2) return;
+
+    const user1 = queue.shift();
+    const user2 = queue.shift();
+
+    const room = Math.random().toString(36).substring(2, 10);
+
+    user1.join(room);
+    user2.join(room);
+
+    user1.room = room;
+    user2.room = room;
+
+    user1.emit("chat-message", "Connected to stranger!");
+    user2.emit("chat-message", "Connected to stranger!");
+}
+
+// ---------------- SOCKET CONNECTION ----------------
 io.on("connection", (socket) => {
 
     console.log("User connected:", socket.id);
 
-    findPartner(socket);
+    // ---------------- LOGIN ----------------
+    socket.on("login", (data) => {
 
-    socket.on("chat-message", (data) => {
+        const { id, country } = data;
 
-        if(socket.partner){
-
-            socket.partner.emit("chat-message", data);
-
+        if (!id || !country) {
+            socket.emit("chat-message", "Invalid login data");
+            return;
         }
 
+        const token = createToken({ id, country });
+
+        socket.user = { id, country, token };
+
+        socket.emit("login-success", token);
     });
 
+    // ---------------- JOIN QUEUE ----------------
+    socket.on("join-queue", () => {
+
+        const token = socket.user?.token;
+        const user = verifyToken(token);
+
+        if (!user) {
+            socket.emit("chat-message", "Invalid session. Reload required.");
+            return;
+        }
+
+        const now = Date.now();
+
+        if (queueCooldown.has(socket.id)) {
+            const last = queueCooldown.get(socket.id);
+
+            if (now - last < 3000) {
+                socket.emit("chat-message", "Please wait before rejoining queue.");
+                return;
+            }
+        }
+
+        queueCooldown.set(socket.id, now);
+
+        socket.userData = user;
+
+        queues[user.country].push(socket);
+
+        matchUsers(user.country);
+    });
+
+    // ---------------- CHAT MESSAGE ----------------
+    socket.on("chat-message", (msg) => {
+
+        const now = Date.now();
+
+        // IP rate limit
+        const ip =
+            socket.handshake.headers["x-forwarded-for"] ||
+            socket.handshake.address;
+
+        if (!ipLimits.has(ip)) {
+            ipLimits.set(ip, []);
+        }
+
+        const history = ipLimits.get(ip);
+        const recent = history.filter(t => now - t < 5000);
+
+        if (recent.length >= 5) {
+            socket.emit("chat-message", "You are sending messages too fast.");
+            return;
+        }
+
+        recent.push(now);
+        ipLimits.set(ip, recent);
+
+        if (socket.room) {
+            socket.to(socket.room).emit("chat-message", sanitize(msg));
+        }
+    });
+
+    // ---------------- TYPING ----------------
     socket.on("typing", () => {
-
-        if(socket.partner){
-
-            socket.partner.emit("stranger-typing");
-
+        if (socket.room) {
+            socket.to(socket.room).emit("stranger-typing");
         }
-
     });
 
+    // ---------------- NEXT STRANGER ----------------
     socket.on("next-stranger", () => {
 
-        if(socket.partner){
+        const country = socket.userData?.country;
 
-            socket.partner.partner = null;
-
-            socket.partner.emit(
-                "chat-message",
-                "Stranger left the chat."
-            );
-
+        if (socket.room) {
+            socket.to(socket.room).emit("chat-message", "Stranger left the chat.");
+            socket.leave(socket.room);
         }
 
-        socket.partner = null;
+        socket.room = null;
 
-        findPartner(socket);
+        if (country) {
+            queues[country] = queues[country].filter(s => s !== socket);
+            queues[country].push(socket);
 
+            matchUsers(country);
+        }
     });
 
+    // ---------------- DISCONNECT ----------------
     socket.on("disconnect", () => {
 
-        if(waitingUser === socket){
+        const country = socket.userData?.country;
 
-            waitingUser = null;
-
+        if (country) {
+            queues[country] = queues[country].filter(s => s !== socket);
         }
 
-        if(socket.partner){
-
-            socket.partner.partner = null;
-
-            socket.partner.emit(
-                "chat-message",
-                "Stranger disconnected."
-            );
-
+        if (socket.room) {
+            socket.to(socket.room).emit("chat-message", "Stranger disconnected.");
         }
 
-        console.log("User disconnected");
-
+        console.log("User disconnected:", socket.id);
     });
 
 });
 
+// ---------------- START SERVER ----------------
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-
     console.log(`Server running on port ${PORT}`);
-
 });

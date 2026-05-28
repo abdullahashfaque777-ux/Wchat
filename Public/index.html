@@ -1,68 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wchat</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interlinked</title>
 
-    <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css"/>
 </head>
+
 <body>
 
-    <div class="app">
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-screen">
 
-        <aside class="sidebar">
+  <h1>Interlinked</h1>
 
-            <h1>Wchat</h1>
+  <input id="userIdInput" placeholder="Enter email or phone" />
 
-            <button class="random-btn">
-                Start Random Chat
-            </button>
+  <select id="countrySelect">
+    <option value="India">India</option>
+    <option value="USA">USA</option>
+    <option value="UK">UK</option>
+  </select>
 
-            <div class="user-status">
-                <p>Status</p>
-                <h2>Online</h2>
-            </div>
+  <button id="startBtn">Start Chat</button>
 
-        </aside>
+</div>
 
-        <main class="chat-section">
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" class="loading-screen hidden">
+    <div class="loader"></div>
+    <p>Finding someone for you...</p>
+</div>
 
-            <div class="chat-header">
+<!-- MAIN CHAT APP -->
+<div id="chatApp" class="app hidden">
 
-                <h3>Random Stranger</h3>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
 
-                <span class="status">
-                    Connected
-                </span>
+    <h2>Interlinked</h2>
 
-            </div>
+    <button id="nextBtn">Next</button>
 
-            <div class="chat-box">
+  </aside>
 
-            </div>
+  <!-- CHAT SECTION -->
+  <main class="chat-section">
 
-            <div class="chat-input-area">
+    <div class="chat-header">
 
-                <input
-                    type="text"
-                    id="messageInput"
-                    placeholder="Type a message..."
-                >
-
-                <button id="sendBtn">
-                    Send
-                </button>
-
-            </div>
-
-        </main>
+      <div>
+        <h3>Random Stranger</h3>
+        <span class="status">Online</span>
+      </div>
 
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- CHAT BOX -->
+    <div class="chat-box"></div>
 
-    <script src="script.js"></script>
+    <!-- TYPING STATUS -->
+    <div class="typing-status" id="typingStatus">
+        Stranger is typing...
+    </div>
+<div id="typingIndicator" class="typing hidden">
+    Stranger is typing...
+</div>
+    <!-- INPUT AREA -->
+    <div class="chat-input-area">
+
+      <input id="messageInput" placeholder="Type a message..." />
+
+      <button id="sendBtn">Send</button>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<!-- SOCKET + SCRIPT -->
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
 
 </body>
-</html> 
+</html>
