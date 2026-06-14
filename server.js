@@ -1,199 +1,305 @@
+const path = require("path");
+app.use(express.static(path.join(__dirname, "Public")));
+require("dotenv").config();
 const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "Public", "index.html"));
+});
+
+  //AI 
+  const aiRoutes = require("./AIintegration/routes/aiRoutes");
+  console.log("AI ROUTES LOADED");
+
+app.use(express.json());
+app.use("/api/ai", aiRoutes);
+
+console.log("ENV CHECK:", process.env.SUPABASE_URL);
+
 const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 
-const app = express();
+const supabase = require("./config/supabase");
+console.log("SUPABASE TYPE:", typeof supabase);
+console.log("SUPABASE VALUE:", supabase);
+console.log("SUPABASE OBJECT:", supabase);
+console.log("FROM EXISTS:", typeof supabase?.from);
+
+// ---------------- TEST DB ----------------
+const testDB = async () => {
+  const { data, error } = await supabase
+    .from("userlogin")
+    .select("id")
+    .limit(1);
+
+  console.log("ERROR:", error);
+  console.log("DATA:", data);
+};
+
+testDB();
+// ---------------- APP SETUP ----------------
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static("public"));
 
 // ---------------- SECURITY ----------------
-const SECRET = "wchat_super_secret_key_change_later";
+const SECRET = "Interlinked_super_secret_key_change_later";
 
 // ---------------- STATE ----------------
-let queues = {
-    India: [],
-    USA: [],
-    UK: []
+const queues = {
+  India: [],
+  USA: [],
+  UK: []
 };
 
 const queueCooldown = new Map();
 const ipLimits = new Map();
 
 // ---------------- HELPERS ----------------
-function createToken(user) {
-    return jwt.sign(user, SECRET, { expiresIn: "7d" });
+function sanitize(msg) {
+  return String(msg)
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function verifyToken(token) {
-    try {
-        return jwt.verify(token, SECRET);
-    } catch {
-        return null;
-    }
-}
-
-function sanitize(msg) {
-    return String(msg)
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+  try {
+    return jwt.verify(token, SECRET);
+  } catch {
+    return null;
+  }
 }
 
 // ---------------- MATCHMAKING ----------------
 function matchUsers(country) {
 
-    const queue = queues[country];
+  const queue = queues[country];
 
-    if (queue.length < 2) return;
+  console.log(
+    "MATCH CHECK:",
+    country,
+    queue ? queue.length : 0
+  );
 
-    const user1 = queue.shift();
-    const user2 = queue.shift();
+  if (!queue || queue.length < 2) return;
 
-    const room = Math.random().toString(36).substring(2, 10);
+  const user1 = queue.shift();
+  const user2 = queue.shift();
 
-    user1.join(room);
-    user2.join(room);
+  const room = Math.random().toString(36).substring(2, 10);
 
-    user1.room = room;
-    user2.room = room;
+  user1.join(room);
+  user2.join(room);
 
-    user1.emit("chat-message", "Connected to stranger!");
-    user2.emit("chat-message", "Connected to stranger!");
+  user1.room = room;
+  user2.room = room;
+
+  user1.emit("matched");
+  user2.emit("matched");
+
+  user1.emit("chat-message", "Connected to stranger!");
+  user2.emit("chat-message", "Connected to stranger!");
+
+  console.log("MATCHED ROOM:", room);
 }
-
-// ---------------- SOCKET CONNECTION ----------------
+// ---------------- SOCKET ----------------
 io.on("connection", (socket) => {
 
-    console.log("User connected:", socket.id);
+  console.log("User connected:", socket.id);
 
-    // ---------------- LOGIN ----------------
-    socket.on("login", (data) => {
+//LOGIN
 
-        const { id, country } = data;
+socket.on("login", async (data) => {
+  try {
+    const { id, country } = data;
 
-        if (!id || !country) {
-            socket.emit("chat-message", "Invalid login data");
-            return;
-        }
+    if (!id || !country) {
+      socket.emit("chat-message", "Missing login information.");
+      return;
+    }
 
-        const token = createToken({ id, country });
+    const { data: existingUser, error: findError } = await supabase
+      .from("userlogin")
+      .select("*")
+      .eq("email_or_phone", id)
+      .maybeSingle();
 
-        socket.user = { id, country, token };
+    if (findError) {
+      console.log("USER SEARCH ERROR:", findError);
+      return;
+    }
 
-        socket.emit("login-success", token);
+    let user = existingUser;
+
+    if (!user) {
+
+      const nodeId =
+        "NODE-" +
+        Math.floor(100000 + Math.random() * 900000);
+
+      const { data: newUser, error: insertError } = await supabase
+        .from("userlogin")
+        .insert([
+          {
+            node_id: nodeId,
+            email_or_phone: id,
+            country: country
+          }
+        ])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.log("USER INSERT ERROR:", insertError);
+        return;
+      }
+
+      user = newUser;
+    }
+
+    const token = jwt.sign(
+      {
+        id,
+        country,
+        nodeId: user.node_id
+      },
+      SECRET,
+      {
+        expiresIn: "7d"
+      }
+    );
+
+    socket.user = {
+      id,
+      country,
+      nodeId: user.node_id,
+      token
+    };
+
+    socket.emit("login-success", {
+      token,
+      nodeId: user.node_id,
+      country: user.country
     });
 
-    // ---------------- JOIN QUEUE ----------------
-    socket.on("join-queue", () => {
+  } catch (err) {
+    console.log("LOGIN ERROR:", err);
+  }
+});
 
-        const token = socket.user?.token;
-        const user = verifyToken(token);
 
-        if (!user) {
-            socket.emit("chat-message", "Invalid session. Reload required.");
-            return;
-        }
+// JOIN QUEUE
+  socket.on("join-queue", () => {
 
-        const now = Date.now();
+  const token = socket.user?.token;
+  const user = verifyToken(token);
 
-        if (queueCooldown.has(socket.id)) {
-            const last = queueCooldown.get(socket.id);
+  if (!user) {
+    socket.emit("chat-message", "Invalid session.");
+    return;
+  }
 
-            if (now - last < 3000) {
-                socket.emit("chat-message", "Please wait before rejoining queue.");
-                return;
-            }
-        }
+  const now = Date.now();
 
-        queueCooldown.set(socket.id, now);
+  if (queueCooldown.has(socket.id)) {
 
-        socket.userData = user;
+    const last = queueCooldown.get(socket.id);
 
-        queues[user.country].push(socket);
+    if (now - last < 3000) {
+      socket.emit("chat-message", "Please wait before rejoining.");
+      return;
+    }
+  }
 
-        matchUsers(user.country);
-    });
+  queueCooldown.set(socket.id, now);
 
-    // ---------------- CHAT MESSAGE ----------------
-    socket.on("chat-message", (msg) => {
+  socket.userData = user;
 
-        const now = Date.now();
+  queues[user.country].push(socket);
 
-        // IP rate limit
-        const ip =
-            socket.handshake.headers["x-forwarded-for"] ||
-            socket.handshake.address;
+  console.log(
+    "QUEUE JOINED:",
+    user.country,
+    queues[user.country].length
+  );
 
-        if (!ipLimits.has(ip)) {
-            ipLimits.set(ip, []);
-        }
+  socket.emit(
+    "queue-status",
+    "Waiting for someone from " + user.country
+  );
 
-        const history = ipLimits.get(ip);
-        const recent = history.filter(t => now - t < 5000);
+  matchUsers(user.country);
+});
+// CHAT
+socket.on("chat-message", (msg) => {
 
-        if (recent.length >= 5) {
-            socket.emit("chat-message", "You are sending messages too fast.");
-            return;
-        }
+  console.log(
+    "MESSAGE RECEIVED:",
+    msg,
+    "ROOM:",
+    socket.room
+  );
 
-        recent.push(now);
-        ipLimits.set(ip, recent);
+  if (socket.room) {
 
-        if (socket.room) {
-            socket.to(socket.room).emit("chat-message", sanitize(msg));
-        }
-    });
+    socket.to(socket.room).emit(
+      "chat-message",
+      sanitize(msg)
+    );
 
-    // ---------------- TYPING ----------------
-    socket.on("typing", () => {
-        if (socket.room) {
-            socket.to(socket.room).emit("stranger-typing");
-        }
-    });
+    console.log("MESSAGE FORWARDED");
+  }
+});
+  // TYPING
+  socket.on("typing", () => {
+    if (socket.room) {
+      socket.to(socket.room).emit("stranger-typing");
+    }
+  });
 
-    // ---------------- NEXT STRANGER ----------------
-    socket.on("next-stranger", () => {
+  // NEXT
+  socket.on("next-stranger", () => {
+    const country = socket.userData?.country;
 
-        const country = socket.userData?.country;
+    if (socket.room) {
+      socket.to(socket.room).emit("chat-message", "Stranger left the chat.");
+      socket.leave(socket.room);
+    }
 
-        if (socket.room) {
-            socket.to(socket.room).emit("chat-message", "Stranger left the chat.");
-            socket.leave(socket.room);
-        }
+    socket.room = null;
+ 
+    if (country) {
+      queues[country] = queues[country].filter(s => s !== socket);
+      queues[country].push(socket);
+      matchUsers(country);
+    }
+  });
 
-        socket.room = null;
 
-        if (country) {
-            queues[country] = queues[country].filter(s => s !== socket);
-            queues[country].push(socket);
+  // DISCONNECT
+  socket.on("disconnect", () => {
+    const country = socket.userData?.country;
 
-            matchUsers(country);
-        }
-    });
+    if (country) {
+      queues[country] = queues[country].filter(s => s !== socket);
+    }
 
-    // ---------------- DISCONNECT ----------------
-    socket.on("disconnect", () => {
+    if (socket.room) {
+      socket.to(socket.room).emit("chat-message", "Stranger disconnected.");
+    }
 
-        const country = socket.userData?.country;
-
-        if (country) {
-            queues[country] = queues[country].filter(s => s !== socket);
-        }
-
-        if (socket.room) {
-            socket.to(socket.room).emit("chat-message", "Stranger disconnected.");
-        }
-
-        console.log("User disconnected:", socket.id);
-    });
+    console.log("User disconnected:", socket.id);
+  });
 
 });
 
-// ---------------- START SERVER ----------------
+// ---------------- SERVER START (ONLY ONCE) ----------------
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
+ 

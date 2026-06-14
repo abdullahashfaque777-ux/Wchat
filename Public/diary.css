@@ -1,0 +1,167 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #05070f;
+    color: #d9e2f2;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ---------------- TOP BAR ---------------- */
+
+.topbar {
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+    background: rgba(5, 7, 15, 0.85);
+    z-index: 100;
+}
+
+.brand {
+    color: #00e5ff;
+    letter-spacing: 3px;
+    font-weight: bold;
+}
+
+.actions button {
+    margin-left: 10px;
+    background: transparent;
+    border: 1px solid #00e5ff;
+    color: #00e5ff;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.actions button:hover {
+    background: rgba(0, 229, 255, 0.08);
+}
+
+/* ---------------- WRITING AREA ---------------- */
+
+.writer-container {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 60px);
+    padding: 40px;
+}
+
+#diaryInput {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+
+    color: #d9e2f2;
+
+    font-size: 18px;
+    line-height: 1.7;
+
+    caret-color: #00e5ff;
+}
+
+/* ---------------- AI GHOST ---------------- */
+
+#ghostSuggestion {
+
+    position: absolute;
+
+    bottom: 35px;
+
+    right: 45px;
+
+    max-width: 420px;
+
+    color: rgba(255, 255, 255, 0.35);
+
+    font-size: 20px;
+
+    font-style: italic;
+
+    text-align: right;
+
+    white-space: pre-wrap;
+
+    user-select: none;
+
+    cursor: pointer;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: opacity 0.25s ease;
+
+    z-index: 50;
+
+}
+
+/* ---------------- PANELS ---------------- */
+
+.panel {
+
+    position: fixed;
+
+    top: 60px;
+
+    right: 0;
+
+    width: 320px;
+
+    height: calc(100vh - 60px);
+
+    background: rgba(8, 16, 31, 0.96);
+
+    border-left: 1px solid #00e5ff;
+
+    padding: 20px;
+
+    overflow-y: auto;
+
+    z-index: 200;
+
+}
+
+.hidden {
+    display: none;
+}
+
+/* ---------------- SCAN LINE ---------------- */
+
+.scan-line {
+
+    position: fixed;
+
+    width: 100%;
+
+    height: 2px;
+
+    background: rgba(0, 229, 255, 0.35);
+
+    animation: scan 6s linear infinite;
+
+    z-index: 999;
+
+}
+
+@keyframes scan {
+
+    0% {
+        top: -10px;
+    }
+
+    100% {
+        top: 100vh;
+    }
+
+}

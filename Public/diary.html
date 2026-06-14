@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>INTERLINKED // DIARY</title>
+
+    <link rel="stylesheet" href="diary.css">
+
+</head>
+
+<body>
+
+    <!-- Scan Effect -->
+    <div class="scan-line"></div>
+
+    <!-- Top Bar -->
+    <div class="topbar">
+
+        <div class="brand">
+            INTERLINKED // DIARY
+        </div>
+
+        <div class="actions">
+
+            <button id="historyBtn">
+                HISTORY
+            </button>
+
+            <button id="systemBtn">
+                SYSTEM
+            </button>
+
+            <button id="saveBtn">
+                SAVE
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Main Writing Area -->
+    <div class="writer-container">
+
+        <textarea
+            id="diaryInput"
+            placeholder="Start writing your thoughts..."
+            spellcheck="false"></textarea>
+
+        <!-- AI Ghost Suggestion -->
+        <div id="ghostSuggestion"></div>
+
+    </div>
+
+    <!-- History Panel -->
+
+    <div id="historyPanel" class="panel hidden">
+
+        <h3>PAST ENTRIES</h3>
+
+        <div id="historyList"></div>
+
+    </div>
+
+    <!-- System Panel -->
+
+    <div id="systemPanel" class="panel hidden">
+
+        <h3>SYSTEM CORE</h3>
+
+        <div id="systemContent">
+
+            <p>Interlinked AI is online.</p>
+
+        </div>
+
+    </div>
+
+    <script src="diary.js"></script>
+
+</body>
+
+</html>

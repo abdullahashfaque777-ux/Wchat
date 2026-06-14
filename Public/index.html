@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Interlinked</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interlinked</title>
 
-  <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -13,75 +13,149 @@
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" class="login-screen">
 
-  <h1>Interlinked</h1>
+    <h1>Interlinked</h1>
 
-  <input id="userIdInput" placeholder="Enter email or phone" />
+    <input id="userIdInput" placeholder="Enter email or phone">
 
-  <select id="countrySelect">
-    <option value="India">India</option>
-    <option value="USA">USA</option>
-    <option value="UK">UK</option>
-  </select>
+    <select id="countrySelect">
+        <option value="India">India</option>
+        <option value="USA">USA</option>
+        <option value="UK">UK</option>
+    </select>
 
-  <button id="startBtn">Start Chat</button>
+    <button id="startBtn">Start Chat</button>
 
 </div>
 
 <!-- LOADING SCREEN -->
 <div id="loadingScreen" class="loading-screen hidden">
+
     <div class="loader"></div>
-    <p>Finding someone for you...</p>
+
+    <p id="loadingText">Finding someone for you...</p>
+
 </div>
 
-<!-- MAIN CHAT APP -->
+<!-- MAIN APP -->
 <div id="chatApp" class="app hidden">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
 
-    <h2>Interlinked</h2>
+        <h2>Interlinked</h2>
 
-    <button id="nextBtn">Next</button>
+        <div class="nav-btn active" data-section="chat">Chats</div>
+        <div class="nav-btn" data-section="global">Global</div>
+        <div class="nav-btn" data-section="diary">Diary</div>
+        <div class="nav-btn" data-section="profile">Profile</div>
 
-  </aside>
+    </aside>
 
-  <!-- CHAT SECTION -->
-  <main class="chat-section">
+    <!-- MAIN AREA -->
+    <main class="main-area">
 
-    <div class="chat-header">
+        <!-- CHAT SECTION -->
+        <section id="chatSection" class="section active">
 
-      <div>
-        <h3>Random Stranger</h3>
-        <span class="status">Online</span>
-      </div>
+            <div class="chat-header">
 
-    </div>
+                <div>
+                    <h3>Unknown Node</h3>
+                    <span class="status">Connected</span>
+                </div>
 
-    <!-- CHAT BOX -->
-    <div class="chat-box"></div>
+                <button id="nextBtn">Next</button>
 
-    <!-- TYPING STATUS -->
-    <div class="typing-status" id="typingStatus">
-        Stranger is typing...
-    </div>
-<div id="typingIndicator" class="typing hidden">
-    Stranger is typing...
+            </div>
+
+            <div class="chat-box"></div>
+
+            <div id="typingIndicator" class="typing hidden">
+                Stranger is typing...
+            </div>
+
+            <div class="chat-input-area">
+
+                <input id="messageInput" placeholder="Type a message...">
+
+                <button id="sendBtn">Send</button>
+
+            </div>
+
+        </section>
+
+        <!-- GLOBAL SECTION (CLEAN SINGLE VERSION) -->
+        <section id="globalSection" class="section">
+
+            <div class="global-wrapper">
+
+                <h1>GLOBAL NETWORK</h1>
+
+                <div class="globe-container">
+
+                    <div class="globe">
+
+                        <div class="orbit orbit1"></div>
+                        <div class="orbit orbit2"></div>
+
+                        <div class="node node1"></div>
+                        <div class="node node2"></div>
+                        <div class="node node3"></div>
+                        <div class="node node4"></div>
+
+                        <div class="scan"></div>
+
+                    </div>
+
+                </div>
+
+                <div class="network-info">
+
+                    <p id="activeNodes">ACTIVE NODES: 127</p>
+
+                    <p id="networkStatus">GLOBAL NETWORK STANDBY</p>
+
+                </div>
+
+                <button id="globalConnectBtn">
+                    INITIATE CONTACT
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- DIARY SECTION -->
+        <section id="diarySection" class="section">
+
+            <iframe
+                src="diary.html"
+                style="width:100%; height:100vh; border:none;"
+            ></iframe>
+
+        </section>
+
+        <!-- PROFILE SECTION -->
+        <section id="profileSection" class="section">
+
+            <div class="placeholder-screen">
+
+                <h1>IDENTITY PROFILE</h1>
+
+                <p>NODE ID: 847291</p>
+
+                <p>STATUS: ACTIVE</p>
+
+                <button>Change Avatar</button>
+
+            </div>
+
+        </section>
+
+    </main>
+
 </div>
-    <!-- INPUT AREA -->
-    <div class="chat-input-area">
 
-      <input id="messageInput" placeholder="Type a message..." />
-
-      <button id="sendBtn">Send</button>
-
-    </div>
-
-  </main>
-
-</div>
-
-
-<!-- SOCKET + SCRIPT -->
 <script src="/socket.io/socket.io.js"></script>
 <script src="script.js"></script>
 
